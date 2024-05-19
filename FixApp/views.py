@@ -1,7 +1,12 @@
+import shutil
+from io import StringIO
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.shortcuts import render, HttpResponse, redirect, HttpResponseRedirect
+from django.http import JsonResponse
 import pandas as pd
 import numpy as np
-from .models import Employee, OrderEvent
+from .models import Employee, OrderEvent, Reports
 import os
 
 
@@ -85,27 +90,58 @@ def OrderEvents(request):
             CAT_IM_ID = request.POST['CAT_IM_ID']
             FD_ID = request.POST['FD_ID']
             Trading_Session = request.POST['Trading_Session']
+            uploaded_file = request.FILES.get('file')  # Access uploaded file through request.FILES
+            directory = 'uploads'
+
+            if not os.path.exists(directory):  # Check if the directory exists, create it if it doesn't
+                os.makedirs(directory)
+
             if CAT_IM_ID == '' or FD_ID == '' or Trading_Session == '':
                 return render(request, 'OrderEvents.html',
                               {'title': 'Required !', 'icon': 'error', 'message': 'One or more fields are missing!'})
-            file_Name = request.POST['file']
-            result = readCSV(file_Name, CAT_IM_ID, FD_ID, Trading_Session)
 
-            try:
+            if uploaded_file.size == 0:
                 return render(request, 'OrderEvents.html',
-                              {'title': 'Required !', 'icon': 'success', 'message': result})
+                              {'title': 'Required !', 'icon': 'error', 'message': 'Uploaded File Size is Empty!'})
+
+            if not uploaded_file:
+                return render(request, 'OrderEvents.html',
+                              {'title': 'No File Uploaded!', 'icon': 'error', 'message': 'Please upload a file!'})
+
+            file_name = uploaded_file.name
+            file_path = os.path.join(directory, uploaded_file.name)  # Define the file path where the file will be save
+            # Save the file to the desired location
+            if file_name.endswith('.csv'):
+                with open(file_path, 'wb+') as destination:
+                    for chunk in uploaded_file.chunks():
+                        destination.write(chunk)
+
+            if not file_name.endswith('.csv'):
+                return render(request, 'OrderEvents.html',
+                              {'title': 'Invalid File Type!', 'icon': 'error', 'message': 'File must be a CSV!'})
+
+            result = readCSV(file_path, CAT_IM_ID, FD_ID, Trading_Session)
+            try:
+                csv_buffer = StringIO()
+                result.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+                response = HttpResponse(csv_buffer, content_type='text/csv')
+                response['Content-Disposition'] = f'attachment; filename="generated_file.csv"'
+                return response
             except Exception as e:
-                return render(request, 'OrderEvents.html', {'message': "Exception CSV File :" + str(e)})
+                print("Error Exception :" + str(e))
+                return render(request, 'OrderEvents.html', {'message': "Error Occur while reading file!"})
         else:
             return render(request, 'OrderEvents.html', {'message': ""})
     except Exception as e:
-        return render(request, 'OrderEvents.html', {'message': "Error Exception :" + str(e)})
+        print("Error Exception :" + str(e))
+        return render(request, 'OrderEvents.html', {'message': "File or CSV Error Exception :" + str(e)})
 
 
-def readCSV(fileName, CAT_IM_ID, FD_ID, Trading_Session):
+def readCSV(filePath, CAT_IM_ID, FD_ID, Trading_Session):
     try:
-        filePath = "E:\\CAT Task\\" + fileName
         df = pd.read_csv(filePath)
+        fileName = filePath.split("\\")[-1]
         columns = ['Order Event', 'Fix_Col_0', 'FirmROID', 'MsgType', 'CAT_IM_ID',
                    'Date', 'Order ID', 'Symbol', 'TimeStamp', 'Fix_Col_1', 'Fix_Col_2', 'Fix_Col_3', 'Fix_Col_4',
                    'Fix_Col_5', 'Fix_Col_6', 'Fix_Col_7', 'Fix_Col_8', 'SideType', 'Price', 'Quantity', 'Fix_Col_9',
@@ -118,17 +154,20 @@ def readCSV(fileName, CAT_IM_ID, FD_ID, Trading_Session):
         new_df['FirmROID'] = (
                 pd.to_datetime(df['Event Timestamp']).dt.strftime('%Y%m%d').astype(str) + "_CAT-" + CAT_IM_ID + "-"
                 + (df.index + 1).astype(str))
-        # new_df['Firm Row ID'] = pd.to_datetime(df['Event Timestamp']).dt.strftime('%Y%m%d').astype(str) + "_MVC_"
-        # new_df['Firm Row ID'] = pd.to_datetime(df['Event Timestamp']).dt.date  # update date
         new_df['Order Event'] = 'NEW'
 
-        if df['Event Type'].eq('MEOA').all():  # check if Event Type has value MEOA replace with MENO
-            df.loc[df['Event Type'] == 'MEOA', 'Event Type'] = 'MENO'
-        new_df['MsgType'] = df['Event Type']
+        filtered_df = df[df['Event Type'] != 'MOOA']
+        # Check if all rows in the filtered DataFrame have Event Type as MEOA
+        if (filtered_df['Event Type'] == 'MEOA').all():
+            # Replace Event Type with MENO
+            filtered_df['Event Type'] = 'MENO'
+
+        # if df['Event Type'].eq('MEOA').all():  # check if Event Type has value MEOA replace with MENO
+        #     df.loc[df['Event Type'] == 'MEOA', 'Event Type'] = 'MENO'
+        new_df['MsgType'] = filtered_df['Event Type']
         new_df['CAT_IM_ID'] = f'{CAT_IM_ID}'
         new_df['Date'] = pd.to_datetime(df['Event Timestamp']).dt.strftime('%Y%m%d').astype(str) + "T000000.00000000"
 
-        # new_df['Date'] = pd.to_datetime(df['Event Timestamp']).dt.date
         counter = 1
         for index, row in df.iterrows():
             new_df.loc[index, 'Order ID'] = "CAT-" + CAT_IM_ID + '-' + "OrderID-" + f'{counter}'
@@ -173,11 +212,20 @@ def readCSV(fileName, CAT_IM_ID, FD_ID, Trading_Session):
         new_df['Fix_Col_26'] = ''
         new_df['Fix_Col_27'] = ''
         new_df['Fix_Col_28'] = ''
-        new_df.to_csv('testing.csv', index=False)
-        orderEventInsertion(new_df)
-        return "Csv File has been Created !"
+        try:
+            new_df.to_csv('testing.csv', index=False)
+            report = Reports(Report_Name='MENO', CAT_IMID=CAT_IM_ID, FD_ID=FD_ID, Train_Session=Trading_Session,
+                             FileType='CSV', Status='Completed', FileName=fileName)
+            report.save()
+            orderEventInsertion(new_df)
+            return new_df
+        except Exception as e:
+            print("CSV to DataFrame Exception :-" + str(e))
+            return str("CSV to DataFrame Exception :- " + str(e))
+
     except Exception as e:
-        return str(e)
+        print("Read CSV Error Exception :" + str(e))
+        return str("Read CSV Exception :- " + str(e))
 
 
 def orderEventInsertion(dataframe):
@@ -234,8 +282,8 @@ def orderEventInsertion(dataframe):
         ])
 
     except Exception as e:
-        print("Bulk : - " + str(e))
-        return str(e)
+        print("Bulk Insertion Exception: - " + str(e))
+        return str("Bulk Insertion Exception: - " + str(e))
 
 
 def OrderTrails(request):
