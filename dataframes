@@ -10,3 +10,101 @@ NEW,,20240513_CAT-VCVW-42,MEOR,VCVW,20240513T000000.00000000,CAT-VCVW-OrderID-1,
 output
 NEW		20240513_CAT-VCVW-1	MENO	VCVW	20240513T000000.00000000	CAT-VCVW-OrderID-1	REGCO	20240513T160000.517000000	FALSE	FALSE				T	FALSE		B		100		MKT	GTX=20240513	ALL		FALSE	4540540244050736652713500211690321808548	A	FALSE			FALSE	N																	
 NEW,,20240513_CAT-VCVW-42,MEOR,VCVW,20240513T000000.00000000,CAT-VCVW-OrderID-1,REGCO,,20240513T160000.517000000,False,False,,126588:VCVW,104138:SPDR,F,VCTY-TAK2-327144,,B,,100,,MKT,GTX=20240513,ALL,False,NA,False,False,,False,,,,,
+It appears that you have two datasets, `data_Frame_1` and `data_Frame_2`, which contain financial transaction records. You want to combine these datasets and produce a unified output. Here's how you can achieve this using Python with the `pandas` library:
+
+1. **Load the DataFrames**: First, ensure your data is in a format that can be loaded into pandas DataFrames.
+
+2. **Combine the DataFrames**: Merge the two DataFrames on common columns.
+
+3. **Output the Result**: Display or save the combined DataFrame.
+
+Here's an example of how you could implement this:
+
+```python
+import pandas as pd
+
+# Create DataFrames from the provided data
+data_1 = {
+    "Order Event": ["NEW"],
+    "Fix_Col_0": [""],
+    "FirmROID": ["20240513_CAT-VCVW-1"],
+    "MsgType": ["MENO"],
+    "CAT_IM_ID": ["VCVW"],
+    "Date": ["20240513T000000.00000000"],
+    "Order ID": ["CAT-VCVW-OrderID-1"],
+    "Symbol": ["REGCO"],
+    "TimeStamp": ["20240513T160000.517000000"],
+    "Fix_Col_1": ["FALSE"],
+    "Fix_Col_2": ["FALSE"],
+    "Fix_Col_3": [""],
+    "Fix_Col_4": ["T"],
+    "Fix_Col_5": ["FALSE"],
+    "Fix_Col_6": [""],
+    "Fix_Col_7": ["B"],
+    "Fix_Col_8": [""],
+    "SideType": ["100"],
+    "Price": [""],
+    "Quantity": ["MKT"],
+    "Fix_Col_9": ["GTX=20240513"],
+    "OrderType": ["ALL"],
+    "TIF": ["FALSE"],
+    "Trading_Session": ["4540540244050736652713500211690321808548"],
+    "Fix_Col_10": ["A"],
+    "Fix_Col_11": ["FALSE"],
+    "FDID": [""],
+    "Acc Type": ["FALSE"],
+    "Fix_Col_12": ["N"]
+}
+
+data_2 = {
+    "Order Event": ["NEW"],
+    "Fix_Col_0": [""],
+    "FirmROID": ["20240513_CAT-VCVW-42"],
+    "MsgType": ["MEOR"],
+    "CAT_IM_ID": ["VCVW"],
+    "Date": ["20240513T000000.00000000"],
+    "Order ID": ["CAT-VCVW-OrderID-1"],
+    "Symbol": ["REGCO"],
+    "Fix_Col_1": [""],
+    "TimeStamp": ["20240513T160000.517000000"],
+    "Fix_Col_2": ["False"],
+    "Fix_Col_3": ["False"],
+    "Fix_Col_4": [""],
+    "Sender_IM_ID": ["126588:VCVW"],
+    "Receiver_IM_ID": ["104138:SPDR"],
+    "Firm_Exchange": ["F"],
+    "Routed_OrderID": ["VCTY-TAK2-327144"],
+    "Fix_Col_5": [""],
+    "SideType": ["B"],
+    "Price": [""],
+    "Quantity": ["100"],
+    "Fix_Col_6": [""],
+    "OrderType": ["MKT"],
+    "TIF": ["GTX=20240513"],
+    "Trading_Session": ["ALL"],
+    "Fix_Col_7": ["False"],
+    "Fix_Col_8": ["NA"],
+    "Fix_Col_9": ["False"],
+    "Fix_Col_10": ["False"],
+    "Fix_Col_11": [""],
+    "Fix_Col_12": ["False"]
+}
+
+# Convert dictionaries to DataFrames
+df1 = pd.DataFrame(data_1)
+df2 = pd.DataFrame(data_2)
+
+# Merge the DataFrames
+combined_df = pd.concat([df1, df2], ignore_index=True)
+
+# Display the combined DataFrame
+print(combined_df)
+```
+
+In this script:
+- Two dictionaries `data_1` and `data_2` are created to simulate your provided data.
+- These dictionaries are then converted into pandas DataFrames `df1` and `df2`.
+- The DataFrames are concatenated using `pd.concat()`.
+- The combined DataFrame is printed out.
+
+You can adapt this script to your actual data input method and output needs.
