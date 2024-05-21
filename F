@@ -1,0 +1,21 @@
+To achieve the desired output, it appears that you need to remove the last set of trailing commas from each line in the original output. This can be done programmatically. Here's an example using Python to clean up the data:
+
+```python
+# Original data
+data = """NEW,,20240513_CAT-VCVW-1,MENO,VCVW,20240513T000000.00000000,CAT-VCVW-OrderID-1,REGCO,20240513T160000.517000000,False,False,,,,T,False,,B,,100,,MKT,GTX=20240513,ALL,,False,4540540244050736652713500211690321808548,A,False,,,False,N,,,,,,,,,,,,,
+NEW,,20240513_CAT-VCVW-42,MEOR,VCVW,20240513T000000.00000000,CAT-VCVW-OrderID-1,REGCO,20240513T160000.517000000,,False,False,,126588:VCVW,104138:SPDR,F,VCTY-TAK2-327144,B,,100,,MKT,GTX=20240513,ALL,False,NA,,False,False,,False,,,,,,,,,,,,,,,
+"""
+
+# Split the data into lines
+lines = data.strip().split('\n')
+
+# Remove the last set of trailing commas from each line
+cleaned_lines = [line.rstrip(',') for line in lines]
+
+# Join the cleaned lines back into a single string
+cleaned_data = '\n'.join(cleaned_lines)
+
+print(cleaned_data)
+```
+
+This script processes each line to remove the trailing commas and then joins the lines back together. When you run this code, it will produce the desired cleaned output.
